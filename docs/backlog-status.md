@@ -58,7 +58,7 @@ Tổng quan nhanh: 0 Done-candidate · phần lớn M0–M2 ở Partial/In progr
 |---|---|---|---|---|
 | SW017 | Import GeoNames có kiểm soát | P0 | Partial | `catalog/geonames.importer.ts` + CLI: tải có retry, checksum, giới hạn zip, validate tọa độ/timezone/trùng, diff, chặn thay đổi >5%, dry-run, lock, đánh dấu lượt bị gián đoạn. Đã import thật cities15000 (34.166 nơi); cities500 cần máy nhiều RAM hơn |
 | SW018 | Chuẩn hóa Việt Nam có phiên bản | P0 | Not started | Cần importer SW017 và rà PDF QĐ 19/2025 |
-| SW019 | Tìm kiếm đa ngôn ngữ | P0 | Partial | Catalog trước (alias bỏ dấu, prefix + trigram ≥0.5, xếp theo dân số), Open-Meteo Geocoding bổ sung; test Hà Nội/ha noi/Hanoi, London GB≠CA. Thiếu alternateNamesV2 theo ngôn ngữ và query corpus đầy đủ |
+| SW019 | Tìm kiếm đa ngôn ngữ | P0 | Partial | Catalog trước (alias bỏ dấu, prefix + trigram ≥0.6 (alias ≥4 ký tự, bỏ mã viết tắt), xếp theo dân số; geocoding bổ sung tối đa 1,5 s khi catalog đã có kết quả), Open-Meteo Geocoding bổ sung; test Hà Nội/ha noi/Hanoi, London GB≠CA. Thiếu alternateNamesV2 theo ngôn ngữ và query corpus đầy đủ |
 | SW020 | Resolve GPS và timezone | P0 | Partial | Timezone theo polygon timezone-boundary-builder (`geo-tz/all`), từ chối điểm có nhiều zone (422), nhãn nơi dân cư gần nhất ≤30 km (`nameApproximate`). Thiếu fixture hai phía ranh giới và chính sách vùng biển |
 | SW021 | Đồng bộ và rollback danh mục | P0 | Not started | Cần SW017 |
 
@@ -76,7 +76,7 @@ Tổng quan nhanh: 0 Done-candidate · phần lớn M0–M2 ở Partial/In progr
 
 | SW | Task | Ưu tiên | Trạng thái | Bằng chứng / còn thiếu |
 |---|---|---|---|---|
-| SW027 | Kiến trúc và lưu trạng thái | P0 | Partial | Token installation lưu bằng `flutter_secure_storage`, tự rotate/đăng ký lại khi 401; `core/settings.dart` (versioned local, migration layout), `RequestGeneration` trong `home_controller.dart`; chưa có secure storage cho token (chưa có token) |
+| SW027 | Kiến trúc và lưu trạng thái | P0 | Partial | Token installation lưu bằng `flutter_secure_storage`, tự rotate/đăng ký lại khi 401; `core/settings.dart` (versioned local, migration layout), `RequestGeneration` trong `home_controller.dart` |
 | SW028 | Design system theo UI | P0 | Partial | `ui/theme.dart`, `ui/widgets.dart`, `core/format.dart`; chưa có component gallery, kiểm text scale lớn/screen reader |
 | SW029 | Bộ icon và nền thời tiết | P0 | Partial | Icon vector `ui/weather_icon.dart`, nền vẽ `sky_scene.dart`; bộ 36 icon + 8 nền PNG chưa có trong repo, chưa có asset manifest/test mapping |
 | SW030 | Navigation và deep link | P0 | Partial | `ui/routes.dart` truyền Location; chưa có deep link (push/widget), chưa có route typed cho alertId/widgetInstanceId |
@@ -132,7 +132,7 @@ Tổng quan nhanh: 0 Done-candidate · phần lớn M0–M2 ở Partial/In progr
 |---|---|---|---|---|
 | SW051 | ASTRO01 mặt trời | P1 | Partial | `providers/astronomy.ts` (suncalc), `sun_moon_screen.dart`, vào qua Drawer; thiếu test DST/Tromsø so nguồn tham chiếu |
 | SW052 | ASTRO01 mặt trăng | P1 | Partial | Moon từ suncalc; upcoming phases cần kiểm; không có ephemeris (không dùng Skyfield) |
-| SW053 | NOAA worker và AUR01 | P1 | Partial | `providers/noaa.ts`, `aurora_screen.dart`; gọi NOAA trong API (chưa có worker), OVATION map chưa có |
+| SW053 | NOAA worker và AUR01 | P1 | Partial | `providers/noaa.ts`, `aurora_screen.dart`; worker cập nhật Kp 5 phút; OVATION map chưa có |
 | SW054 | Kiểm soát phát hành thiên văn/aurora | C | Not started | Cần comparison test, feature flags; aurora push giữ off |
 
 ## M3 — G14 Bản đồ thời tiết
@@ -194,7 +194,7 @@ Tổng quan nhanh: 0 Done-candidate · phần lớn M0–M2 ở Partial/In progr
 
 | SW | Task | Ưu tiên | Trạng thái | Bằng chứng / còn thiếu |
 |---|---|---|---|---|
-| SW080 | Quyền và ranh giới dữ liệu | P0 | Not started | Cần auth (SW014); chưa có data inventory |
+| SW080 | Quyền và ranh giới dữ liệu | P0 | Not started | Auth đã có (SW014); chưa có data inventory, kiểm tra quyền theo installation |
 | SW081 | Xóa dữ liệu và retention | P0 | Partial | `DELETE /v1/installations/me` (thu hồi token, xóa cascade push/prefs/events, tách feedback), nút xóa dữ liệu ở màn About. Thiếu job retention (feedback 180 ngày, attachment 90 ngày) |
 | SW082 | Dashboard và cảnh báo vận hành | P1 | Not started | Cần staging |
 | SW083 | Feature flags | P1 | Partial | `GET /v1/config` trả flag/capability; chưa có remote config theo region/appVersion, audit |
@@ -239,6 +239,6 @@ Tổng quan nhanh: 0 Done-candidate · phần lớn M0–M2 ở Partial/In progr
 
 1. Mua gói Open-Meteo thương mại (D070) — chặn SW022 và việc coi weather/AQI là sẵn sàng production.
 2. Staging (SW009) — chặn CD, backup, smoke, dashboard, mọi bằng chứng "Done" cần staging.
-3. Installation auth (SW014, đang làm) — chặn push, feedback upload, data deletion.
+3. Installation auth (SW014) đã có code + test; còn thiếu app attestation và test 403/429 tự động.
 4. Hợp đồng Maps/MapTiler/radar/alerts — chặn G14 và SW059.
 5. Tài khoản Firebase/Apple Developer/store — chặn G16, SW074, G23.
