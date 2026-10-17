@@ -1,0 +1,7 @@
+#ISO	ISO3	ISO-Numeric	fips	Country	Capital	Area(in sq km)	Population	Continent
+VN	VNM	704	VM	Vietnam	Hanoi	329560	95540800	AS
+GB	GBR	826	UK	United Kingdom	London	244820	66488991	EU
+CA	CAN	124	CA	Canada	Ottawa	9984670	37058856	NA
+FR	FRA	250	FR	France	Paris	547030	66987244	EU
+US	USA	840	US	United States	Washington	9629091	327167434	NA
+NO	NOR	578	NO	Norway	Oslo	324220	5314336	EU

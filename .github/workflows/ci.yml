@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  server:
+    name: Weather API (lint, test, build, migrate)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/weather-api } }
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env: { POSTGRES_USER: skyweather, POSTGRES_PASSWORD: skyweather_ci, POSTGRES_DB: skyweather }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U skyweather" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://skyweather:skyweather_ci@localhost:5432/skyweather
+      PROVIDER_MODE: fixture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: services/weather-api/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Migrations apply on an empty database (twice = idempotent)
+        run: npm run migrate && npm run migrate
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+  mobile:
+    name: Mobile (analyze, test, build web)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: 3.38.9, channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release --dart-define=APP_ENV=ci

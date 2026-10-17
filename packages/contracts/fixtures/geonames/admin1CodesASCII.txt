@@ -1,0 +1,8 @@
+VN.44	Hanoi	Hanoi	1581129
+VN.20	Ho Chi Minh	Ho Chi Minh	1580578
+VN.78	Da Nang	Da Nang	1905468
+GB.ENG	England	England	6269131
+CA.08	Ontario	Ontario	6093943
+FR.11	Île-de-France	Ile-de-France	3012874
+US.TX	Texas	Texas	4736286
+NO.54	Troms og Finnmark	Troms og Finnmark	11071613

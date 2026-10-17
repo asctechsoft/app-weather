@@ -1,0 +1,11 @@
+1581130	Hanoi	Hanoi	Ha Noi,Hà Nội,Hanoi,HAN,Thủ đô Hà Nội	21.0245	105.84117	P	PPLC	VN		44				8053663		10	Asia/Bangkok	2026-01-01
+1566083	Ho Chi Minh City	Ho Chi Minh City	Saigon,Sài Gòn,Thành phố Hồ Chí Minh,SGN	10.82302	106.62965	P	PPLA	VN		20				3467331		10	Asia/Ho_Chi_Minh	2026-01-01
+1583992	Da Nang	Da Nang	Đà Nẵng,Tourane	16.06778	108.22083	P	PPLA	VN		78				752493		10	Asia/Ho_Chi_Minh	2026-01-01
+2643743	London	London	Londres,Londra,LON	51.50853	-0.12574	P	PPLC	GB		ENG				8961989		10	Europe/London	2026-01-01
+6058560	London	London		42.98339	-81.23304	P	PPL	CA		08				422324		10	America/Toronto	2026-01-01
+2988507	Paris	Paris	Paname,Parigi	48.85341	2.3488	P	PPLC	FR		11				2138551		10	Europe/Paris	2026-01-01
+4717560	Paris	Paris		33.66094	-95.55551	P	PPLA2	US		TX				24782		10	America/Chicago	2026-01-01
+3133880	Tromsø	Tromso	Tromso,Romsa	69.6489	18.95508	P	PPLA	NO		54				64300		10	Europe/Oslo	2026-01-01
+9999001	Bad TZ	Bad TZ		10	10	P	PPL	VN		44				10		10	Mars/Olympus	2026-01-01
+9999002	Bad Coord	Bad Coord		95	10	P	PPL	VN		44				10		10	Asia/Bangkok	2026-01-01
+1581130	Hanoi duplicate	Hanoi duplicate		21	105	P	PPL	VN		44				1		10	Asia/Bangkok	2026-01-01

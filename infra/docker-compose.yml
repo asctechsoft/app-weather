@@ -1,0 +1,40 @@
+# Local development stack (SW008). Dev-only credentials — never reuse outside local.
+# Usage: docker compose -f infra/docker-compose.yml up -d
+name: skyweather-local
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: skyweather
+      POSTGRES_PASSWORD: skyweather_dev
+      POSTGRES_DB: skyweather
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skyweather -d skyweather"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  # S3-compatible object storage for feedback attachments.
+  minio:
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: skyweather
+      MINIO_ROOT_PASSWORD: skyweather_dev_secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+volumes:
+  pgdata:
+  miniodata:

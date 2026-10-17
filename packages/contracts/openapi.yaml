@@ -1,0 +1,182 @@
+openapi: 3.0.3
+info:
+  title: SkyWeather Weather Server
+  version: 1.0.0
+  description: >
+    Internal API consumed by the SkyWeather mobile app. Canonical units: °C, m/s, mm, hPa, m, %, degree, μg/m³.
+    Instants are UTC; localDate/localTime follow the location's IANA timezone. Missing values are null.
+    Every section has status (ready|empty|unsupported|stale|error), reasonCode and source metadata.
+    Response examples: ./examples/*.json
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local development
+security:
+  - installationToken: []
+paths:
+  /v1/health/live:
+    get: { summary: Liveness, security: [], responses: { '200': { description: OK } } }
+  /v1/health/ready:
+    get: { summary: Readiness (database, Redis), security: [], responses: { '200': { description: Ready }, '503': { description: Not ready } } }
+  /v1/installations:
+    post:
+      summary: Register an anonymous installation; returns a bearer token shown once (SW014)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, appVersion]
+              properties:
+                platform: { type: string, enum: [android, ios, web, windows, macos, linux] }
+                appVersion: { type: string }
+                locale: { type: string, example: vi }
+                timezone: { type: string, example: Asia/Ho_Chi_Minh }
+      responses:
+        '201': { description: '{ installationId, token, tokenExpiresAt }' }
+        '400': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /v1/installations/me/token:
+    post:
+      summary: Rotate the token (accepts a token expired for less than 7 days)
+      security: []
+      responses: { '200': { description: '{ installationId, token, tokenExpiresAt }' }, '401': { $ref: '#/components/responses/Error' } }
+  /v1/installations/me:
+    patch:
+      summary: Update locale / timezone / app version
+      responses: { '204': { description: Updated } }
+    delete:
+      summary: Revoke the token and delete server-side data of this installation (SW081)
+      responses: { '204': { description: Deleted } }
+  /v1/config:
+    get:
+      summary: Feature flags and limits
+      security: []
+      parameters: [{ name: locale, in: query, schema: { type: string, enum: [en, vi] } }]
+      responses: { '200': { description: Config, content: { application/json: { example: { $ref: './examples/config.json' } } } } }
+  /v1/locations/search:
+    get:
+      summary: Search places (min 2 chars, max 20 results)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - { name: locale, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20 } }
+        - { name: countryCode, in: query, schema: { type: string, pattern: '^[A-Za-z]{2}$' } }
+      responses:
+        '200': { description: Results }
+        '400': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /v1/locations/resolve:
+    post:
+      summary: Resolve a GPS coordinate to a gps-kind location with an IANA timezone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [latitude, longitude]
+              properties: { latitude: { type: number }, longitude: { type: number }, accuracy: { type: number, nullable: true }, source: { type: string } }
+      responses: { '200': { description: Location }, '400': { $ref: '#/components/responses/Error' }, '503': { $ref: '#/components/responses/Error' } }
+  /v1/locations/register:
+    post:
+      summary: Re-register a place by external id (provider=geonames)
+      responses: { '200': { description: Location }, '404': { $ref: '#/components/responses/Error' } }
+  /v1/locations/{id}:
+    get:
+      summary: Location by internal id
+      parameters: [{ $ref: '#/components/parameters/PathId' }]
+      responses: { '200': { description: Location }, '404': { $ref: '#/components/responses/Error' } }
+  /v1/weather/home:
+    get:
+      summary: Home snapshot (current, today, highlights, hourly, daily, airQuality, insights, officialAlerts, aurora, map)
+      parameters: [{ $ref: '#/components/parameters/LocationId' }]
+      responses: { '200': { description: Snapshot (partial sections allowed) }, '404': { $ref: '#/components/responses/Error' }, '503': { $ref: '#/components/responses/Error' } }
+  /v1/weather/summaries:
+    get:
+      summary: Batch summary for up to 20 places
+      parameters: [{ name: locationIds, in: query, required: true, schema: { type: string, description: comma-separated, maxItems: 20 } }]
+      responses: { '200': { description: Items with per-item status } }
+  /v1/weather/hourly:
+    get:
+      parameters:
+        - { $ref: '#/components/parameters/LocationId' }
+        - { $ref: '#/components/parameters/Date' }
+        - { name: metric, in: query, schema: { type: string, enum: [temperature, rain, wind] } }
+      responses: { '200': { description: Hourly records of the local day }, '400': { $ref: '#/components/responses/Error' } }
+  /v1/weather/daily:
+    get:
+      parameters:
+        - { $ref: '#/components/parameters/LocationId' }
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 10 } }
+      responses: { '200': { description: Real horizon (horizonDays) + rule-based overview } }
+  /v1/weather/metrics/{metric}:
+    get:
+      parameters:
+        - { name: metric, in: path, required: true, schema: { type: string, enum: [wind, rain, humidity, visibility, uv, pressure, feels-like] } }
+        - { $ref: '#/components/parameters/LocationId' }
+        - { $ref: '#/components/parameters/Date' }
+        - { name: window, in: query, description: rain only, schema: { type: string, enum: [today, 24h, 7d] } }
+      responses: { '200': { description: summary + hourly section }, '400': { $ref: '#/components/responses/Error' } }
+  /v1/weather/refresh:
+    post:
+      summary: Manual refresh with a 60 s cooldown per location+scope
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { locationId: { type: string }, scope: { type: string, enum: [weather, air_quality, all] } } } } }
+      responses: { '200': { description: '{ refreshed, reasonCode, nextAllowedAt }' } }
+  /v1/air-quality:
+    get:
+      parameters: [{ $ref: '#/components/parameters/LocationId' }, { $ref: '#/components/parameters/Date' }]
+      responses: { '200': { description: US AQI (CAMS model, station always null) }, '503': { $ref: '#/components/responses/Error' } }
+  /v1/astronomy:
+    get:
+      parameters: [{ $ref: '#/components/parameters/LocationId' }, { $ref: '#/components/parameters/Date' }]
+      responses: { '200': { description: Sun + moon sections } }
+  /v1/aurora:
+    get:
+      parameters:
+        - { $ref: '#/components/parameters/LocationId' }
+        - { name: hemisphere, in: query, schema: { type: string, enum: [north, south] } }
+      responses: { '200': { description: Global Kp, night window, experimental qualitative outlook } }
+  /v1/alerts:
+    get:
+      summary: Official alerts — currently unsupported (COVERAGE_NOT_VERIFIED)
+      parameters: [{ $ref: '#/components/parameters/LocationId' }]
+      responses: { '200': { description: '{ status: unsupported }' } }
+  /v1/maps/manifest:
+    get: { summary: Map layers — currently unsupported, responses: { '200': { description: '{ status: unsupported }' } } }
+  /v1/data-sources:
+    get:
+      parameters: [{ name: locationId, in: query, schema: { type: string } }]
+      responses: { '200': { description: Source/attribution registry } }
+  /v1/feedback:
+    post:
+      summary: Text feedback (idempotent)
+      parameters: [{ name: Idempotency-Key, in: header, required: true, schema: { type: string, pattern: '^[A-Za-z0-9-]{8,64}$' } }]
+      responses:
+        '201': { description: '{ ticketId, status: received, receivedAt, duplicate }' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    installationToken:
+      type: http
+      scheme: bearer
+      description: Server-issued installation token (swi_…); 401 UNAUTHENTICATED / TOKEN_EXPIRED → rotate or re-register. 429 RATE_LIMITED carries Retry-After.
+  parameters:
+    LocationId: { name: locationId, in: query, required: true, schema: { type: string, format: uuid } }
+    PathId: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Date: { name: date, in: query, schema: { type: string, format: date, description: local date at the location; must be within the forecast horizon } }
+  responses:
+    Error:
+      description: Error body
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code, messageKey, requestId]
+            properties:
+              code: { type: string }
+              messageKey: { type: string }
+              requestId: { type: string }
+              retryAfterSeconds: { type: integer, nullable: true }
+              fieldErrors: { type: array, items: { type: object, properties: { field: { type: string }, messageKey: { type: string } } } }

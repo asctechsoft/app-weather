@@ -1,0 +1,20 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+*.keystore
+key.properties
+
+# Data that must never be committed (dumps, imports, real user data)
+*.dump
+*.sql.gz
+services/weather-api/data/
+services/weather-api/data-*/
+services/weather-api/.geonames/
+
+# Tooling
+node_modules/
+.DS_Store
